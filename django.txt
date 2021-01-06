@@ -1,0 +1,261 @@
+https://virtualenv.pypa.io/en/latest/
+virtualenv
+https://virtualenvwrapper.readthedocs.io/en/latest/
+virtualenvwrapper
+https://pip.pypa.io/en/stable/installing/
+установка настройка pip
+https://docs.djangoproject.com/en/2.0/howto/deployment/wsgi/
+how to deploy with WSGI
+Так как мы будем использовать Python 3, нет необходимости отдельно уста-
+навливать базу данных. В эту версию языка уже встроена система управления
+базами данных (СУБД) SQLite. SQLite­ – легкая СУБД, которую можно использо-
+вать вместе с Django для быстрой разработки.
+
+                                Содержанеи 
+                            _базовая настройка_
+                            _описание проекта_
+                            _setings.py_
+                            _проекты и создания приложения_ 
+                            _модель models.py blog_
+                            _makemigrations_
+                            _Создание администрирования Django_ _админка_
+                            _Добавление моделей в админку_
+
+
+Первоначальная установка, базовая настройка
+_базовая настройка_
+1 pip install virtualenv
+2 virtualenv my_venv
+2.1 source my_venv/bin/activate
+2.2 deactivate         ## просто в терминале чтобы деактивировать 
+3 pip install Django==2.0.5 # установка Django
+3.1 pip install django==2.1.5  # потом если надо обновить django
+4 pip install --upgrade pip      # обновить pip
+4.1 python -m pip install --upgrade pip # команда аналог обновить pip
+5 python3 
+>>> import django
+>>> django.get_version()
+'2.0.5'           # проверка правильно ли произошла установка ы
+6 django-admin startproject mysite
+
+7 my_env/lib/python3.6/site-packages. # все библиотеки будут сохраняться сюда 
+7.1 which python3
+/home/sam/miniconda3/bin/python3
+
+8 _makemigrations_
+1 python manage.py makemigrations blog # после того как внес изменения в models.py делю миграции
+''' в папке migrations появляется файлы 0001_initial.py можно посмотреть как выглядит файл миграции'''
+2 python manage.py sqlmigrate blog 0001  # можем посмотреть сам sql код
+3 python manage.py migrate   # синхронизация базы данных
+  Applying blog.0001_initial... OK
+
+9 Админка 
+  python manage.py createsuperuser
+  username: admin
+  Email: admin@admin.com
+  Password: приветмир
+  Password(again): приветмир
+  Superuser created successfully
+
+  http://127.0.0.1:8000/admin/
+##########################################################3
+
+Описание проекта mysite
+_описание проекта_
+1 manage.py # утилита с помощью которой можно управлять проектом 
+2 mysite # папка нашего проекта 
+3 __init.py # пустой файл который говорит python, что mysite это пакет python
+4 setings.py # конфигурационный файл
+5 urls.py # здесь храняться шаблоны адресов
+6 wsgi.py # конфигурационный файл для запуска проекта как wsgi-приложения 
+
+В setings.py  содержит настройки приложегтя включая базу данных, INSTALLED_APPS  список приложений, надо сделать первую
+миграцию для всех приложений из списка INSTALLED_APPS.
+
+7 cd mysite
+python manage.py migrate   # первая миграция для приложений в INSTALLED_APPS
+python manage.py runserver # запуск сервера 
+python manage.py runserver 127.0.0.1:8001 --settings=mysite.settings   # с кастомным портом 
+
+#############################################################################################
+https://docs.djangoproject.com/en/2.0/ref/settings/.
+документация 
+
+_setings.py_ 
+1 DEBUG (True, False) # удобно когда надо понять что именно не работает
+
+2 ALLOWED_HOSTS  ## где указываются название домена  
+
+3 INSTALLED_APPS ## здесь указываются какие приложения активны какие работают на сайте 
+Приложения по умолчанию ради которых делали первую миграцию:
+1 django.contrib.admin # сайт администрирования 
+2 django.contrib.auth  # подсистема аунтефикации
+3 django.contrib.contenttypes  # подсистема для работы с типами объектов системы 
+4 django.contrib.sessions  # подсистема сессий 
+5 django.contirb.messages # подсистема сообщений 
+6 django.contrib.staticfiles # подсистема для управления статическим содержимым сайта
+
+4 MIDDLEWARE    # список подключеныых промежуточных слоев 
+
+5 ROOT_URLCONF   # указывает на python-модуль который содержит корневые шаблоны 
+
+6 DATABASES  # здесь информация о базе данных,какая именно здесь используется. Должна быть указана хотя бы одна
+СУБД SQLite3
+
+7 LANGUAGE_CODE  # определяет язык системы 
+
+8 USE_TZ   # Временная зона или поддержка временых зон 
+#######################################################################################
+_проекты и создания приложения_ 
+Проект это сам сайт, котороый состоит из приложений(блог, форум, вопросы)
+
+1 python manage.py startapp blog  # Создаем наше приложение 
+cd blog/
+ admin.py       
+ apps.py
+ __init__.py
+ migrations/
+ models.py
+ tests.py
+ views.py
+
+1 admin.py  #  здесь происходит регистрация моделей для добавления их в систему администрирования Django
+то что добавляем в админку 
+
+2 apps.py # основной конфиг приложения blog 
+
+3 migrations    # папка которая содержит миграции баз данных приложения. Миграция позволяет отслеживать изменение 
+моделей и синхронизировать их со схемой данных базы как git базы данных
+
+4  models.py    # модели данных приложения 
+
+5 tests.py     # предназначени для создания тестов 
+
+6 views.py     # вся логика приложения описывается здесь какждый обработчик получает Http-запрос обрабатывает его и
+возвращает ответ 
+###########################################################################
+_модель models.py blog_
+Модель это python класс, каждый атрибут это поле в базе данных. Создается таблица в базе данных для каждой модели,
+определенной в models.py 
+
+
+
+
+
+
+
+
+
+
+                                            Создание блога план 
+                                            _models.py_
+                                            _setings.py активация новоего приложения_
+                                            _makemigrations_
+                                            _Создание администрирования Django_ _админка_
+
+
+_models.py_                                 
+1 models.py  # описание статей 
+from django.db import models
+from django.utils import timezone
+from django.contrib.auth.models import User
+
+class Post(models.Model):
+    STATUS_CHOICES = (
+        ('draft', 'Draft'),
+        ('published', 'Published'),
+    )
+    title = models.Charfield(max_length=250)
+    slug = models.SlugField(max_length=250,unique_for_date='publish')
+    author = models.ForeignKey(User,on_delete=models.CASCADE, 
+                                related_name='blog_posts')
+    body = models.TextField()
+    publish = models.DateTimeField(default=timezone.now)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    status = models.Charfield(max_length=10,choices=STATUS_CHOICES,default='draft')
+
+    class Meta:
+        ordering = ('-publish',)
+    
+    def __str__(self):
+        return self.title
+
+    ''' title это поле заголовка статьи опеределено как Charfield, который сооотвествует VARCHAR в базе данных '''
+    """ slug поле для формирования URL'ов, нужно для построения семантических url для статаей, параметр unique_for_date
+    позволяет формировать дату публикаций статей slug используется для создания уникальных url  """
+    ''' author поле которое говорит о том, что у каждой статьи есть свой автор, параметр on_delete говорит о том, что
+    если мы удалим все пользователя, автора  то тогда все статьи будут удалены '''
+    '''body основное содержание статьи текстовое поле котрое будет сохранено в столбце с типом TEXT в sql базе данных ''' 
+    '''' publish поле даты, которое сохраняет дату публикации статьи. Параметр timezone.now. Она возвращает текущие дату 
+    и время при написании статьи'''
+    '''created указывает дату создания статьи auto_now_add дата будет сохраняться автоматически при создании объекта'''
+    '''updated дата и время, указывающая период когда статья была отредактирована'''
+    ''' status статус статьи '''
+    ''' https://docs.djangoproject.com/en/2.0/ref/models/fields/'''
+    ''' META порядок статей по убыванию -publish, только что опубликованные статьи будут первыми'''
+    ''' __str__()  возвращает отображение понятное человеку '''
+
+#########################################################
+2 
+_setings.py активация новоего приложения_
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'blog.apps.BlogConfig',
+]
+""" blog.apps это активация приложения для того что бы Django отслеживал наши модели и созадавал таблицы, BlogConfig
+это конфигурация приложения """
+
+##########################################
+3 _makemigrations_
+После активации приложения в setings.py можно сделать миграции для создания базы данных приложения blog
+1 python manage.py makemigrations blog
+
+blog/migrations/0001_initial.py
+    - Create model Post
+
+''' в папке migrations появляется файлы 0001_initial.py можно посмотреть как выглядит файл миграции'''
+2 python manage.py sqlmigrate blog 0001  # можем посмотреть сам sql код
+
+
+
+"""
+-- Create model Post
+--
+CREATE TABLE "blog_post" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "title" varchar(250) NOT NULL, "slug" varchar(250) NOT NULL, "body" text NOT NULL, "publish" datetime NOT NULL, "created" datetime NOT NULL, "updated" datetime NOT NULL, "status" varchar(10) NOT NULL, "author_id" integer NOT NULL REFERENCES "auth_user" ("id") DEFERRABLE INITIALLY DEFERRED);
+CREATE INDEX "blog_post_slug_b95473f2" ON "blog_post" ("slug");
+CREATE INDEX "blog_post_author_id_dd7a8485" ON "blog_post" ("author_id");
+COMMIT;
+"""
+
+3 python manage.py migrate   # синхронизация базы данных
+  Applying blog.0001_initial... OK
+##############################################################################################
+4 _Создание администрирования Django_ _админка_
+1 python manage.py createsuperuser
+  username: admin
+  Email: admin@admin.com
+  Password:   приветмир
+  Password(again): приветмир
+  Superuser created successfully
+  http://127.0.0.1:8000/admin/
+
+5 _Добавление моделей в админку_
+1 в папке приложения blog/admin.py необходими импортировать model Post
+from django.contrib import admin
+from .models import Post
+''' c models.py импортирую класс Post'''
+
+admin.site.register(Post)
+""" Регистрирую свою модель """
+
+2 http://127.0.0.1:8000/admin/
+увижу свою модель Post,  add добавить свой post 
+
+
+
