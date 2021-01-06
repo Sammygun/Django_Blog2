@@ -67,7 +67,7 @@ https://stackoverflow.com/questions/53637182/django-no-such-table-main-auth-user
 3 Migrate again python manage.py makemigrations and then python manage.py migrate
 4 Start the server python manage.py runserver
 
-
+  11  python manage.py shell
 ##########################################################3
 
 Описание проекта mysite
@@ -162,6 +162,9 @@ _модель models.py blog_
                                             _setings.py активация новоего приложения_
                                             _makemigrations_
                                             _Создание администрирования Django_ _админка_
+                                            _работа с QuerySet и менеджерами_
+                                            _QuerySet_
+                                            _создание обработчиков списка и страницы подробностей_
 
 
 _models.py_                                 
@@ -299,10 +302,11 @@ class PostAdmin(admin.ModelAdmin):
 
 """
 ###############################################################################################
-_работа с queryset и менеджерами_
+_работа с QuerySet и менеджерами_
+_QuerySet_
 https://docs.djangoproject.com/en/2.0/ref/models/
 API
-
+###################################
 1 python manage.py shell
 
 >>> from django.contrib.auth.models import User
@@ -324,9 +328,99 @@ MultipleObjectsReturned """
 Post.objests.create(title='One more post', slug='one-more-post', body='Post body.', author=user)
 """Создание поста объединение создание и сохранение поста с помощью метода create()  будет сформирован sql запрос
  INSERT  в базу данных"""
-
+###########################################
 2 Изменение объектов 
 >>> post.title = "New title"
 ''' Изменили в переменной post заголвок title вместо Another post в New title в админке поменяется '''
 >>> post.save()
 """ сохраняем в базу данных изменения преобразование в SQL-выржение UPDATE """
+###########################################
+3 Получение объектов 
+
+>>> from django.contrib.auth.models import User
+>>> from blog.models import Post
+>>> all_posts=Post.objects.all() ## здесь мы просто присвоили значение переменной поэтому не было запроса в базу данных
+""" ORM основана на коллекции queryset это коллекция объектов полученных из базы данных, можно фильтровать и сортировать
+В django один менеджеров модели objects. Можно получить с помощью него объект запроса QuerySet.
+метод all() нужен нам для того чтобы получить все объекты из таблицы"""
+
+>>> Post.objects.all()     # без значения переменной тогда будет вывод всех наших постов
+<QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django reinchardt?>, <Post: USER>]>
+
+##########################################
+
+4 1 Использование метода filter()
+>>> Post.objects.filter(publish__year=2021) # помни Post это класс который мы создали в models.py
+ ## фильтрация по году 21 __ два нижних подчеркивания
+<QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django reinchardt?>, <Post: USER>]>
+
+2 """ Фильтрация статей по логину и году """
+Post.objects.filter(publish__year=2021, author__username='admin')
+<QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django reinchardt?>, <Post: USER>]>
+
+2.1 """ Фильтрация по цепочке """
+>>> Post.objects.filter(publish__year=2021).filter( author__username='admin')
+<QuerySet [<Post: One more post>, <Post: New title>, <Post: Who was Django reinchardt?>, <Post: USER>]>
+
+# Всегда помни при фильтрация по полю два нижних подчеркивания __  пример publish__year=2021
+
+#######################################################
+
+5 Использование метода exclude()_работа с queryset и менедже_работа с queryset и менеджерами_
+""" настравиваем фильтрацию чтобы были все посты кроме начало на Who пример ниже"""
+>>> Post.objects.filter(publish__year=2021).exclude(title__startswith='Who')
+<QuerySet [<Post: One more post>, <Post: New title>, <Post: USER>]>
+#############################################
+6 Использование order_by()
+1 Сортируем статьи по заголовку в алфавитном порядке 
+
+>>> Post.objects.order_by('title')
+<QuerySet [<Post: New title>, <Post: One more post>, <Post: USER>, <Post: Who was Django reinchardt?>]>
+
+2 Сортировка в обратном порядке 
+Post.objects.order_by('-tite')
+<QuerySet [<Post: Who was Django reinchardt?>, <Post: USER>, <Post: One more post>, <Post: New title>]>
+###############################################
+7 Удаление объектов 
+post = Post.objects.get(id=1)  # переменной присвоили знчение 
+post.delete()     # запустили удаление 
+ """ удаление объекта также удаляет зависимые объекты определ, через ForeignKey и имеющие параметр on_delete равный 
+ CASCADE""" 
+#################################################
+8 Когда происходит выполнение запросо QuerySet
+QuerySet выполняется только в том случае 
+1 первая итерация QuerySet
+2 когда мы делаем срез по коллекции пример:
+Post.objets.all()[:3]
+3 при сериализации или кешировании
+4 при вызове методов repr() или len();
+5 когда использ. функцию list(), передавая ее аргументов QuerySet;
+6 при использовании QuerySet в логических выражениях таких как bool() or and if 
+
+##############################################
+Создание менеджера модели 
+Objects менеджер по умолчанию. Но мы можем создать свой менеджер для получения всех опубликованных статей.
+models.py
+
+1 class PublishedManager(models.Manager):
+    """Создаем своего менеджера вместо стандартного objects """
+    def get_queryset(self):
+        return super().get_queryset().filter(status='published')
+
+2 class Post(models.Model):
+#.....
+ objects = models.Manager()           # менеджер по умолчанию
+ published = PublishedManager()       # наш новый менеджер
+
+3 python manage.py shell
+Post.published.filter(title__startswith='Who')
+''' Получаю доступ к всем статьям которые начинаются с Who ''' 
+
+################################################################################
+_создание обработчиков списка и страницы подробностей_
+Обработчики Django это простая функция, которая получает веб-запрос и возвращает веб-ответ. Вся логика ответе который 
+поступает от сервер  описывается внутри данной функции. Функция определяет каким образом поступит ответ.
+
+В начале создаются обработчики, затем шаблоны url для них, html-шаблоны для отображения результатов обработки.
+Каждый обработчик генерерирует шаблон, используя переменные контекста и возвращает HTTP-ответ со сформированной 
+html-страницей.
