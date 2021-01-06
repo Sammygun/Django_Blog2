@@ -20,6 +20,7 @@ how to deploy with WSGI
                             _makemigrations_
                             _Создание администрирования Django_ _админка_
                             _Добавление моделей в админку_
+                            _настройка отображения моделей_
 
 
 Первоначальная установка, базовая настройка
@@ -58,6 +59,15 @@ _базовая настройка_
   Superuser created successfully
 
   http://127.0.0.1:8000/admin/
+
+  10 проблема с полем slug на версии Django 2.0.5
+https://stackoverflow.com/questions/53637182/django-no-such-table-main-auth-user-old
+1 keep django version 2.1.5 (the issue addressed in this version) pip install django==2.1.5
+2 Delete the SQLite db  (dbslqlite3 удалить просто)
+3 Migrate again python manage.py makemigrations and then python manage.py migrate
+4 Start the server python manage.py runserver
+
+
 ##########################################################3
 
 Описание проекта mysite
@@ -257,5 +267,66 @@ admin.site.register(Post)
 2 http://127.0.0.1:8000/admin/
 увижу свою модель Post,  add добавить свой post 
 
+воспроизведи проблему и попробуй удалить базу и еще раз slug проблема
+https://stackoverflow.com/questions/53637182/django-no-such-table-main-auth-user-old
 
+########################################################################################
+_настройка отображения моделей_  
+admin.py
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+    list_display = ('title', 'slug', 'author', 'publish', 'status')
+    list_filter = ('status', 'created', 'publish', 'author')
+    search_fields = ('title', 'body')
+    prepopulated_fields = {'slug': ('title',)}
+    raw_id_fields = ('author',)
+    date_hierarchy = 'publish'
+    ordering = ('status', 'publish')
 
+"""1  list_display позволяет перечислить поля модели, которые мы хотим отображать на странице списка
+@admin.register() выполняет те же действия, что и функция admin.site.register() регистрирует декорируемый класс
+наследний ModelAdmin
+
+2 list_display    это дополнительные информация в поле где сделан наш пост увидеть автора, дату публикации
+3 list_filter     это фильтр справа в админке от нас
+4 search_fields  это поиск в админке
+5 prepopulated_fields словарь в котором ключ slug связан с полем title!!!!!!!!!
+ предварительно заполняемые поля, получается когда указываю название Post в title slug автоматом
+подтягивает если кирилица то переводит в латиницу
+6 raw_id_fields
+7 date_hierarchy иерархия даты над полем Action можем по дата публикациям смотреть
+8  ordering  сортировка статей по полю status 
+
+"""
+###############################################################################################
+_работа с queryset и менеджерами_
+https://docs.djangoproject.com/en/2.0/ref/models/
+API
+
+1 python manage.py shell
+
+>>> from django.contrib.auth.models import User
+"""импортируем пользователя """
+>>> from blog.models import Post
+""" импортирую нашу модель """
+
+>>> user = User.objects.get(username='admin')
+""" Получаю доступ к пользователю admin если объект admin не найден в базе DoesNotExist, если несколько то
+MultipleObjectsReturned """
+
+>>> post = Post(title='Another post', slug='another-post',
+...             body='Post body.', author=user)
+""" создаю объект статьи Post, указываю заголовок, слаг, контент и автора пользователя полученного на предыдущем шаге
+пока объект храниться в памяти"""
+>>> post.save()
+# сохраняем статью в базу данных формирует sql-запрос INSERT в базу данных
+
+Post.objests.create(title='One more post', slug='one-more-post', body='Post body.', author=user)
+"""Создание поста объединение создание и сохранение поста с помощью метода create()  будет сформирован sql запрос
+ INSERT  в базу данных"""
+
+2 Изменение объектов 
+>>> post.title = "New title"
+''' Изменили в переменной post заголвок title вместо Another post в New title в админке поменяется '''
+>>> post.save()
+""" сохраняем в базу данных изменения преобразование в SQL-выржение UPDATE """
